@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Inventory Management Challenge</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f0f0f0;
+    }
+
+    #game-container {
+      background-color: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-sizing: border-box;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    h1,
+    h2 {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    h1 {
+      color: #2E8B57;
+    }
+
+    h2 {
+      color: #DC143C;
+    }
+
+    #metrics-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 40px;
+    }
+
+    #metrics-table th,
+    #metrics-table td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: center;
+    }
+
+    #metrics-table th {
+      background-color: #2E8B57;
+      color: white;
+    }
+
+    #choices button {
+      padding: 10px;
+      margin: 10px 0;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 1em;
+      cursor: pointer;
+      border: none;
+      border-radius: 5px;
+      background-color: #2E8B57;
+      color: white;
+    }
+
+    #choices button:hover {
+      background-color: #246B48;
+    }
+
+    #feedback {
+      margin-bottom: 40px;
+      font-style: italic;
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-left: 5px solid #2E8B57;
+    }
+
+    #question {
+      font-size: 1.2em;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    ul {
+      list-style-type: disc;
+      margin-left: 20px;
+    }
+
+    #startButton {
+      padding: 15px;
+      font-size: 1.1em;
+      background-color: #2E8B57;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #startButton:hover {
+      background-color: #246B48;
+    }
+
+    #playerFeedback {
+      display: none;
+      margin-top: 20px;
+    }
+
+    #playerFeedback textarea {
+      width: 100%;
+      height: 100px;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      resize: vertical;
+    }
+
+    #playerFeedback button {
+      padding: 10px 20px;
+      font-size: 1em;
+      background-color: #2E8B57;
+      color: white;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    #playerFeedback button:hover {
+      background-color: #246B48;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="game-container">
+    <h2>Inventory Management Challenge</h2>
+    <h1>Optimize Your Factory's Performance</h1>
+    <p>As the Operations Manager, make strategic decisions to balance inventory costs, maintain production flow, and
+      keep customers satisfied. Every choice impacts your factory's success!</p>
+
+    <table id="metrics-table">
+      <tr>
+        <th>Inventory Costs (£)</th>
+        <th>Production Flow</th>
+        <th>Customer Satisfaction</th>
+      </tr>
+      <tr>
+        <td id="inventoryCosts">£0</td>
+        <td id="productionFlow">50</td>
+        <td id="customerSatisfaction">50</td>
+      </tr>
+    </table>
+
+    <div id="feedback">Make your first decision to begin the challenge!</div>
+    <div id="question">Welcome to the Inventory Management Challenge!</div>
+    <div id="choices">
+      <button id="startButton">Start Game</button>
+    </div>
+
+    <div id="playerFeedback">
+      <h3>We value your feedback!</h3>
+      <textarea id="feedbackText" placeholder="Share your thoughts..."></textarea>
+      <button onclick="submitFeedback()">Submit</button>
+    </div>
+  </div>
+
+  <script>
+    // Constants
+    const INVENTORY_COST_THRESHOLD = 50000; // £50,000
+
+    // Weights for metrics
+    const WEIGHTS = {
+      inventoryCosts: 0.5,       // 50% of the final score
+      productionFlow: 0.3,       // 30% of the final score
+      customerSatisfaction: 0.2  // 20% of the final score
+    };
+
+    // Initial metrics
+    const initialState = {
+      inventoryCosts: 0,
+      productionFlow: 50,
+      customerSatisfaction: 50
+    };
+
+    // Game state
+    let gameState = {
+      inventoryCosts: initialState.inventoryCosts,
+      productionFlow: initialState.productionFlow,
+      customerSatisfaction: initialState.customerSatisfaction,
+      currentScenario: 0
+    };
+
+    // Array of scenarios
+    const scenarios = [
+      {
+        question: "Scenario 1: Overstock Dilemma\nThe warehouse is full, and another shipment is due soon. How do you handle the situation?",
+        choices: [
+          {
+            text: "Option 1: Rent additional warehouse space.",
+            inventoryCostsChange: +5000,
+            productionFlowChange: +10,
+            customerSatisfactionChange: 0,
+            reasons: {
+              inventoryCostsChange: "for additional storage expenses.",
+              productionFlowChange: "as production continues smoothly.",
+              customerSatisfactionChange: "remains unaffected."
+            }
+          },
+          {
+            text: "Option 2: Delay incoming shipments and prioritize outgoing orders.",
+            inventoryCostsChange: 0,
+            productionFlowChange: -10,
+            customerSatisfactionChange: +5,
+            reasons: {
+              productionFlowChange: "due to delayed materials.",
+              customerSatisfactionChange: "as key orders are prioritized."
+            }
+          },
+          {
+            text: "Option 3: Offer discounts to clear out excess inventory.",
+            inventoryCostsChange: +2000,
+            productionFlowChange: +5,
+            customerSatisfactionChange: +10,
+            reasons: {
+              inventoryCostsChange: "from reduced profits.",
+              productionFlowChange: "as space is freed up.",
+              customerSatisfactionChange: "because customers appreciate discounts."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 2: Supplier Delay\nA key supplier is delayed, impacting production. How do you respond?",
+        choices: [
+          {
+            text: "Option 1: Pay for expedited shipping from another supplier.",
+            inventoryCostsChange: +10000,
+            productionFlowChange: +15,
+            customerSatisfactionChange: +5,
+            reasons: {
+              inventoryCostsChange: "due to higher shipping costs.",
+              productionFlowChange: "as production resumes quickly.",
+              customerSatisfactionChange: "because orders are fulfilled on time."
+            }
+          },
+          {
+            text: "Option 2: Shift production to less resource-intensive products.",
+            inventoryCostsChange: 0,
+            productionFlowChange: -10,
+            customerSatisfactionChange: 0,
+            reasons: {
+              productionFlowChange: "due to changes in production plans.",
+              customerSatisfactionChange: "remains steady."
+            }
+          },
+          {
+            text: "Option 3: Reduce work hours until the shipment arrives.",
+            inventoryCostsChange: -5000,
+            productionFlowChange: -15,
+            customerSatisfactionChange: -10,
+            reasons: {
+              inventoryCostsChange: "from labor cost savings.",
+              productionFlowChange: "as production slows down.",
+              customerSatisfactionChange: "due to delayed orders."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 3: Demand Spike\nA sudden surge in customer demand leads to low stock levels. What’s your strategy?",
+        choices: [
+          {
+            text: "Option 1: Increase production by ordering from a secondary supplier.",
+            inventoryCostsChange: +8000,
+            productionFlowChange: +20,
+            customerSatisfactionChange: +15,
+            reasons: {
+              inventoryCostsChange: "from higher supplier costs.",
+              productionFlowChange: "as production ramps up.",
+              customerSatisfactionChange: "due to meeting demand."
+            }
+          },
+          {
+            text: "Option 2: Implement order limits and prioritize key customers.",
+            inventoryCostsChange: 0,
+            productionFlowChange: +5,
+            customerSatisfactionChange: +5,
+            reasons: {
+              productionFlowChange: "with focused efforts.",
+              customerSatisfactionChange: "among key customers."
+            }
+          },
+          {
+            text: "Option 3: Delay orders to optimize inventory.",
+            inventoryCostsChange: -5000,
+            productionFlowChange: -10,
+            customerSatisfactionChange: -5,
+            reasons: {
+              inventoryCostsChange: "due to cost savings.",
+              productionFlowChange: "as production slows.",
+              customerSatisfactionChange: "from delayed deliveries."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 4: Production Line Failure\nA critical machine has broken down, halting production. How do you handle this emergency?",
+        choices: [
+          {
+            text: "Option 1: Pay workers overtime to make up for the lost production.",
+            inventoryCostsChange: +6000,
+            productionFlowChange: +20,
+            customerSatisfactionChange: +5,
+            reasons: {
+              inventoryCostsChange: "from overtime pay.",
+              productionFlowChange: "as production catches up.",
+              customerSatisfactionChange: "since orders are fulfilled."
+            }
+          },
+          {
+            text: "Option 2: Rent temporary equipment until repairs are made.",
+            inventoryCostsChange: +10000,
+            productionFlowChange: +15,
+            customerSatisfactionChange: 0,
+            reasons: {
+              inventoryCostsChange: "for rental fees.",
+              productionFlowChange: "with temporary equipment.",
+              customerSatisfactionChange: "remains steady."
+            }
+          },
+          {
+            text: "Option 3: Reduce production quotas to avoid further strain.",
+            inventoryCostsChange: 0,
+            productionFlowChange: -10,
+            customerSatisfactionChange: -5,
+            reasons: {
+              productionFlowChange: "due to lowered quotas.",
+              customerSatisfactionChange: "from unmet demand."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 5: Warehouse Reorganization\nWarehouse space is running low, but production is steady. How do you manage inventory?",
+        choices: [
+          {
+            text: "Option 1: Implement a just-in-time inventory system.",
+            inventoryCostsChange: +2000,
+            productionFlowChange: +10,
+            customerSatisfactionChange: +10,
+            reasons: {
+              inventoryCostsChange: "for system setup costs.",
+              productionFlowChange: "due to efficient stock management.",
+              customerSatisfactionChange: "as orders are fulfilled promptly."
+            }
+          },
+          {
+            text: "Option 2: Purchase additional storage units to manage overflow.",
+            inventoryCostsChange: +7000,
+            productionFlowChange: +5,
+            customerSatisfactionChange: +5,
+            reasons: {
+              inventoryCostsChange: "for purchasing storage units.",
+              productionFlowChange: "with added capacity.",
+              customerSatisfactionChange: "due to steady deliveries."
+            }
+          },
+          {
+            text: "Option 3: Outsource warehousing to a third-party provider.",
+            inventoryCostsChange: +10000,
+            productionFlowChange: +15,
+            customerSatisfactionChange: 0,
+            reasons: {
+              inventoryCostsChange: "from outsourcing fees.",
+              productionFlowChange: "as space constraints are lifted.",
+              customerSatisfactionChange: "remains steady."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 6: Seasonal Sales Boom\nA holiday season spike in demand is anticipated. What is your approach to stock management?",
+        choices: [
+          {
+            text: "Option 1: Increase inventory in advance to meet expected demand.",
+            inventoryCostsChange: +12000,
+            productionFlowChange: +20,
+            customerSatisfactionChange: +15,
+            reasons: {
+              inventoryCostsChange: "from higher stocking costs.",
+              productionFlowChange: "to meet increased demand.",
+              customerSatisfactionChange: "as customers receive orders on time."
+            }
+          },
+          {
+            text: "Option 2: Only increase stock for high-demand products.",
+            inventoryCostsChange: +5000,
+            productionFlowChange: +10,
+            customerSatisfactionChange: +5,
+            reasons: {
+              inventoryCostsChange: "for selective stocking.",
+              productionFlowChange: "focused on key products.",
+              customerSatisfactionChange: "among high-demand items."
+            }
+          },
+          {
+            text: "Option 3: Keep inventory levels steady and risk potential stockouts.",
+            inventoryCostsChange: 0,
+            productionFlowChange: 0,
+            customerSatisfactionChange: -15,
+            reasons: {
+              productionFlowChange: "remains steady.",
+              customerSatisfactionChange: "due to unmet demand."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 7: New Product Launch\nThe factory is preparing for a new product launch. How do you adjust inventory levels?",
+        choices: [
+          {
+            text: "Option 1: Increase inventory of raw materials to meet launch requirements.",
+            inventoryCostsChange: +8000,
+            productionFlowChange: +15,
+            customerSatisfactionChange: +10,
+            reasons: {
+              inventoryCostsChange: "from purchasing materials.",
+              productionFlowChange: "as production ramps up.",
+              customerSatisfactionChange: "due to successful launch."
+            }
+          },
+          {
+            text: "Option 2: Delay other products' production to focus on the new launch.",
+            inventoryCostsChange: 0,
+            productionFlowChange: +10,
+            customerSatisfactionChange: +5,
+            reasons: {
+              productionFlowChange: "focused on new product.",
+              customerSatisfactionChange: "for the new market segment."
+            }
+          },
+          {
+            text: "Option 3: Maintain current inventory levels to conserve resources.",
+            inventoryCostsChange: -4000,
+            productionFlowChange: -5,
+            customerSatisfactionChange: -10,
+            reasons: {
+              inventoryCostsChange: "to save costs.",
+              productionFlowChange: "due to limited production.",
+              customerSatisfactionChange: "from limited product availability."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 8: Inventory Surplus\nThe factory has overstocked on materials that are no longer in high demand. What’s your plan?",
+        choices: [
+          {
+            text: "Option 1: Offer the surplus at a discount to clear out inventory.",
+            inventoryCostsChange: +3000,
+            productionFlowChange: +5,
+            customerSatisfactionChange: +10,
+            reasons: {
+              inventoryCostsChange: "from reduced profits.",
+              productionFlowChange: "as space becomes available.",
+              customerSatisfactionChange: "customers enjoy discounts."
+            }
+          },
+          {
+            text: "Option 2: Repurpose the materials for future projects.",
+            inventoryCostsChange: 0,
+            productionFlowChange: 0,
+            customerSatisfactionChange: +5,
+            reasons: {
+              productionFlowChange: "remains steady.",
+              customerSatisfactionChange: "anticipating future products."
+            }
+          },
+          {
+            text: "Option 3: Dispose of the surplus materials to free up space.",
+            inventoryCostsChange: -2000,
+            productionFlowChange: -10,
+            customerSatisfactionChange: -5,
+            reasons: {
+              inventoryCostsChange: "to reduce holding costs.",
+              productionFlowChange: "due to decreased material availability.",
+              customerSatisfactionChange: "from limited product variety."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 9: Market Expansion\nYour company is considering expanding into a new market. Make a decision:",
+        choices: [
+          {
+            text: "Option 1: Invest heavily in marketing to establish a strong presence.",
+            inventoryCostsChange: +7000,
+            productionFlowChange: +10,
+            customerSatisfactionChange: +15,
+            reasons: {
+              inventoryCostsChange: "for extensive marketing campaigns.",
+              productionFlowChange: "to support increased demand.",
+              customerSatisfactionChange: "due to better brand recognition."
+            }
+          },
+          {
+            text: "Option 2: Conduct limited market research before expanding.",
+            inventoryCostsChange: +3000,
+            productionFlowChange: +5,
+            customerSatisfactionChange: +5,
+            reasons: {
+              inventoryCostsChange: "for targeted research efforts.",
+              productionFlowChange: "to manage gradual growth.",
+              customerSatisfactionChange: "from understanding new market needs."
+            }
+          },
+          {
+            text: "Option 3: Delay expansion until market conditions improve.",
+            inventoryCostsChange: 0,
+            productionFlowChange: 0,
+            customerSatisfactionChange: -10,
+            reasons: {
+              productionFlowChange: "remains steady.",
+              customerSatisfactionChange: "due to missed opportunities."
+            }
+          }
+        ]
+      },
+      {
+        question: "Scenario 10: Cost-Cutting Measures\nThe company is facing financial strain. Choose your strategy:",
+        choices: [
+          {
+            text: "Option 1: Lay off non-essential staff to reduce payroll costs.",
+            inventoryCostsChange: -8000,
+            productionFlowChange: -20,
+            customerSatisfactionChange: -15,
+            reasons: {
+              inventoryCostsChange: "from payroll savings.",
+              productionFlowChange: "due to reduced workforce.",
+              customerSatisfactionChange: "from decreased service quality."
+            }
+          },
+          {
+            text: "Option 2: Reduce supplier payments with delayed schedules.",
+            inventoryCostsChange: -5000,
+            productionFlowChange: -10,
+            customerSatisfactionChange: -5,
+            reasons: {
+              inventoryCostsChange: "from payment delays.",
+              productionFlowChange: "due to supply chain disruptions.",
+              customerSatisfactionChange: "from slight delays in order fulfillment."
+            }
+          },
+          {
+            text: "Option 3: Invest in automation to reduce long-term costs.",
+            inventoryCostsChange: +15000,
+            productionFlowChange: +25,
+            customerSatisfactionChange: +10,
+            reasons: {
+              inventoryCostsChange: "from automation investments.",
+              productionFlowChange: "due to increased efficiency.",
+              customerSatisfactionChange: "from improved service."
+            }
+          }
+        ]
+      }
+    ];
+
+    // Function to calculate Inventory Costs Score
+    function calculateInventoryCostScore(inventoryCosts) {
+      // Penalize for exceeding the threshold
+      if (inventoryCosts > INVENTORY_COST_THRESHOLD) {
+        let excess = inventoryCosts - INVENTORY_COST_THRESHOLD;
+        // Each £1,000 over the threshold deducts 1 point, max deduction 50 points
+        return Math.max(50 - Math.round(excess / 1000), 0);
+      } else {
+        // If under threshold, maximum points
+        return 50;
+      }
+    }
+
+    // Function to calculate Production Flow Score
+    function calculateProductionFlowScore(productionFlow) {
+      if (productionFlow > 80) return 25;
+      if (productionFlow > 60) return 20;
+      if (productionFlow > 40) return 15;
+      if (productionFlow > 20) return 10;
+      return 5;
+    }
+
+    // Function to calculate Customer Satisfaction Score
+    function calculateCustomerSatisfactionScore(customerSatisfaction) {
+      if (customerSatisfaction > 80) return 25;
+      if (customerSatisfaction > 60) return 20;
+      if (customerSatisfaction > 40) return 15;
+      if (customerSatisfaction > 20) return 10;
+      return 5;
+    }
+
+    // Function to calculate the final score based on the scoring formula
+    function calculateFinalScore() {
+      // Inventory Costs Score
+      let inventoryScore = calculateInventoryCostScore(gameState.inventoryCosts) * WEIGHTS.inventoryCosts;
+
+      // Production Flow Score
+      let productionScore = calculateProductionFlowScore(gameState.productionFlow) * WEIGHTS.productionFlow;
+
+      // Customer Satisfaction Score
+      let customerScore = calculateCustomerSatisfactionScore(gameState.customerSatisfaction) * WEIGHTS.customerSatisfaction;
+
+      // Balance Bonus
+      let balanceBonus = 0;
+      if (
+        gameState.productionFlow >= 40 && gameState.productionFlow <= 70 &&
+        gameState.customerSatisfaction >= 40 && gameState.customerSatisfaction <= 70
+      ) {
+        balanceBonus = 10;
+      }
+
+      // Imbalance Penalty
+      let imbalancePenalty = 0;
+      let imbalances = 0;
+      if (gameState.productionFlow < 30 || gameState.productionFlow > 90) imbalances++;
+      if (gameState.customerSatisfaction < 30 || gameState.customerSatisfaction > 90) imbalances++;
+      if (imbalances >= 2) {
+        imbalancePenalty = -10;
+      } else if (imbalances === 1) {
+        imbalancePenalty = -5;
+      }
+
+      // Final Score
+      let finalScore = inventoryScore + productionScore + customerScore + balanceBonus + imbalancePenalty;
+
+      // Ensure finalScore is between 0 and 100
+      finalScore = Math.max(0, Math.min(100, finalScore));
+
+      return {
+        finalScore,
+        inventoryScore,
+        productionScore,
+        customerScore,
+        balanceBonus,
+        imbalancePenalty
+      };
+    }
+
+    // Function to update game metrics and display
+    function makeDecision(
+      inventoryCostsChange = 0,
+      productionFlowChange = 0,
+      customerSatisfactionChange = 0
+    ) {
+      gameState.inventoryCosts += inventoryCostsChange;
+      gameState.productionFlow += productionFlowChange;
+      gameState.customerSatisfaction += customerSatisfactionChange;
+
+      // Ensure metrics stay within bounds (0 - 100 for flow and satisfaction)
+      gameState.productionFlow = Math.max(0, Math.min(100, gameState.productionFlow));
+      gameState.customerSatisfaction = Math.max(0, Math.min(100, gameState.customerSatisfaction));
+      gameState.inventoryCosts = Math.max(0, gameState.inventoryCosts); // Prevent negative inventory costs
+
+      updateDisplay();
+    }
+
+    // Function to display the game metrics on the page
+    function updateDisplay() {
+      document.getElementById('inventoryCosts').textContent = `£${gameState.inventoryCosts.toLocaleString()}`;
+      document.getElementById('productionFlow').textContent = gameState.productionFlow;
+      document.getElementById('customerSatisfaction').textContent = gameState.customerSatisfaction;
+    }
+
+    // Function to display feedback after each decision
+    function provideFeedback(choice) {
+      let feedback = 'Previous Decision Outcome:<br><ul>';
+      if (choice.inventoryCostsChange !== 0) {
+        const costChangeText = choice.inventoryCostsChange > 0 ? `increased by £${choice.inventoryCostsChange.toLocaleString()}` : `decreased by £${Math.abs(choice.inventoryCostsChange).toLocaleString()}`;
+        feedback += `<li>Inventory Costs ${costChangeText} ${choice.reasons.inventoryCostsChange}</li>`;
+      }
+      if (choice.productionFlowChange !== 0) {
+        const flowChangeText = choice.productionFlowChange > 0 ? `increased by ${choice.productionFlowChange}` : `decreased by ${Math.abs(choice.productionFlowChange)}`;
+        feedback += `<li>Production Flow ${flowChangeText} ${choice.reasons.productionFlowChange}</li>`;
+      }
+      if (choice.customerSatisfactionChange !== 0) {
+        const satisfactionChangeText = choice.customerSatisfactionChange > 0 ? `increased by ${choice.customerSatisfactionChange}` : `decreased by ${Math.abs(choice.customerSatisfactionChange)}`;
+        feedback += `<li>Customer Satisfaction ${satisfactionChangeText} ${choice.reasons.customerSatisfactionChange}</li>`;
+      }
+      feedback += '</ul>';
+
+      document.getElementById('feedback').innerHTML = feedback;
+    }
+
+    // Function to handle player's decision
+    function makeChoice(choiceIndex) {
+      let choice = scenarios[gameState.currentScenario].choices[choiceIndex];
+      makeDecision(
+        choice.inventoryCostsChange || 0,
+        choice.productionFlowChange || 0,
+        choice.customerSatisfactionChange || 0
+      );
+      provideFeedback(choice);
+
+      gameState.currentScenario++;
+      if (gameState.currentScenario < scenarios.length) {
+        displayScenario(gameState.currentScenario);
+      } else {
+        endGame();
+      }
+    }
+
+    // Function to end the game and show final results with detailed feedback and feedforward
+    function endGame() {
+      document.getElementById('question').textContent = "Game Over!";
+      document.getElementById('choices').innerHTML = '';
+      document.getElementById('feedback').innerHTML = '';
+
+      // Calculate final scores based on the scoring formula
+      let scores = calculateFinalScore();
+
+      let finalFeedback = `<strong>Final Score: ${scores.finalScore.toFixed(0)}</strong><br><br>`;
+      finalFeedback += `<strong>Performance Breakdown:</strong><br><ul>`;
+
+      finalFeedback += `<li>Inventory Costs: £${gameState.inventoryCosts.toLocaleString()} (${scores.inventoryScore.toFixed(0)} points)</li>`;
+      finalFeedback += `<li>Production Flow: ${gameState.productionFlow} (${scores.productionScore.toFixed(1)} points)</li>`;
+      finalFeedback += `<li>Customer Satisfaction: ${gameState.customerSatisfaction} (${scores.customerScore.toFixed(1)} points)</li>`;
+      if (scores.balanceBonus > 0) {
+        finalFeedback += `<li>Balance Bonus: +${scores.balanceBonus}</li>`;
+      }
+      if (scores.imbalancePenalty < 0) {
+        finalFeedback += `<li>Imbalance Penalty: ${scores.imbalancePenalty}</li>`;
+      }
+      finalFeedback += `</ul><br>`;
+
+      // Provide detailed feedback and feedforward based on final score
+      if (scores.finalScore >= 90) {
+        finalFeedback += "<strong>Outstanding Performance!</strong> You have demonstrated exceptional operational management by maintaining optimal inventory costs, ensuring smooth production flow, and achieving high customer satisfaction.<br><br>";
+        finalFeedback += "<strong>Feedforward:</strong> Continue leveraging your strategic decision-making to sustain and further enhance your factory's performance.";
+      } else if (scores.finalScore >= 80) {
+        finalFeedback += "<strong>Excellent Performance!</strong> You have effectively managed operations, balancing inventory costs, production flow, and customer satisfaction.<br><br>";
+        finalFeedback += "<strong>Feedforward:</strong> Focus on fine-tuning your strategies to achieve even higher efficiency and customer satisfaction.";
+      } else if (scores.finalScore >= 70) {
+        finalFeedback += "<strong>Very Good Performance!</strong> You managed the factory well, with some areas excelling and others needing attention.<br><br>";
+        finalFeedback += "<strong>Feedforward:</strong> Identify and address the weaker metrics to elevate your overall performance.";
+      } else if (scores.finalScore >= 60) {
+        finalFeedback += "<strong>Good Performance!</strong> You maintained a decent balance in operations, though improvements are needed in certain areas.<br><br>";
+        finalFeedback += "<strong>Feedforward:</strong> Analyze which metrics need enhancement and develop strategies to improve them for better outcomes.";
+      } else if (scores.finalScore >= 50) {
+        finalFeedback += "<strong>Fair Performance.</strong> Your management has room for improvement in balancing key operational metrics.<br><br>";
+        finalFeedback += "<strong>Feedforward:</strong> Reflect on your decisions and consider alternative approaches to better manage inventory costs, production flow, and customer satisfaction.";
+      } else {
+        finalFeedback += "<strong>Poor Performance.</strong> Significant challenges were faced in balancing the factory's operations.<br><br>";
+        finalFeedback += "<strong>Feedforward:</strong> Reevaluate your strategies and prioritize critical metrics to enhance operational efficiency and customer satisfaction.";
+      }
+
+      // Detailed Feedback for Each Metric
+      finalFeedback += `<br><strong>Detailed Feedback:</strong><br>`;
+
+      // Inventory Costs Feedback
+      if (gameState.inventoryCosts <= INVENTORY_COST_THRESHOLD) {
+        finalFeedback += `<strong>Inventory Costs:</strong> Excellent cost management! You kept inventory costs within reasonable limits, ensuring profitability without overspending on storage or procurement.<br>`;
+      } else {
+        finalFeedback += `<strong>Inventory Costs:</strong> Inventory costs exceeded the threshold, indicating overspending on storage or procurement. Consider strategies to optimize inventory levels and negotiate better supplier terms.<br>`;
+      }
+
+      // Production Flow Feedback
+      if (gameState.productionFlow >= 80) {
+        finalFeedback += `<strong>Production Flow:</strong> Exceptional production efficiency! Your operations ran smoothly with minimal bottlenecks.<br>`;
+      } else if (gameState.productionFlow >= 60) {
+        finalFeedback += `<strong>Production Flow:</strong> Good production flow with some minor disruptions. Continue monitoring for potential bottlenecks.<br>`;
+      } else if (gameState.productionFlow >= 40) {
+        finalFeedback += `<strong>Production Flow:</strong> Adequate production flow, but there are areas that could be optimized for better efficiency.<br>`;
+      } else {
+        finalFeedback += `<strong>Production Flow:</strong> Production flow was below optimal levels, suggesting inefficiencies or delays in operations. Focus on streamlining processes.<br>`;
+      }
+
+      // Customer Satisfaction Feedback
+      if (gameState.customerSatisfaction >= 80) {
+        finalFeedback += `<strong>Customer Satisfaction:</strong> Outstanding! Customers are highly satisfied with your service and order fulfillment.<br>`;
+      } else if (gameState.customerSatisfaction >= 60) {
+        finalFeedback += `<strong>Customer Satisfaction:</strong> Good! Most customers are satisfied, but there's room to improve order accuracy and timeliness.<br>`;
+      } else if (gameState.customerSatisfaction >= 40) {
+        finalFeedback += `<strong>Customer Satisfaction:</strong> Adequate customer satisfaction, though improvements are necessary to enhance customer loyalty.<br>`;
+      } else {
+        finalFeedback += `<strong>Customer Satisfaction:</strong> Needs improvement. Customer satisfaction is low, possibly due to delays or inaccuracies in orders. Enhance inventory forecasting and order management.<br>`;
+      }
+
+      document.getElementById('feedback').innerHTML = finalFeedback;
+
+      // Show player feedback form
+      document.getElementById('playerFeedback').style.display = 'block';
+    }
+
+    // Function to display a scenario
+    function displayScenario(index) {
+      let scenario = scenarios[index];
+      document.getElementById('question').textContent = scenario.question;
+
+      let choicesDiv = document.getElementById('choices');
+      choicesDiv.innerHTML = '';
+
+      scenario.choices.forEach((choice, i) => {
+        let button = document.createElement('button');
+        button.textContent = choice.text;
+        button.onclick = function () { makeChoice(i); };
+        choicesDiv.appendChild(button);
+      });
+    }
+
+    // Function to start the game
+    function startGame() {
+      // Hide the Start Game button
+      document.getElementById('startButton').style.display = 'none';
+
+      // Reset game state
+      gameState = {
+        inventoryCosts: initialState.inventoryCosts,
+        productionFlow: initialState.productionFlow,
+        customerSatisfaction: initialState.customerSatisfaction,
+        currentScenario: 0
+      };
+
+      updateDisplay();
+      document.getElementById('feedback').innerHTML = 'Make your first decision to begin the challenge!';
+
+      // Display the first scenario
+      displayScenario(gameState.currentScenario);
+    }
+
+    // Function to submit player feedback
+    function submitFeedback() {
+      let feedback = document.getElementById('feedbackText').value.trim();
+      if (feedback === "") {
+        alert("Please enter your feedback before submitting.");
+        return;
+      }
+
+      // For demonstration, we'll just alert the feedback.
+      // In a real application, you'd send this to a server.
+      alert("Thank you for your feedback!");
+
+      // Clear the feedback textarea
+      document.getElementById('feedbackText').value = "";
+    }
+
+    // Start the game when the Start Game button is clicked
+    window.onload = function () {
+      updateDisplay();
+      document.getElementById('startButton').onclick = function () {
+        startGame();
+      };
+    };
+  </script>
+</body>
+
+</html>
