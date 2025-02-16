@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pizza Inventory Challenge</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #F0F0F0;
+      margin: 0;
+      padding: 0;
+    }
+    .container, #gameContainer {
+      width: 80%;
+      margin: 50px auto;
+      background-color: #FFFFFF;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+    }
+    .header h1 {
+      color: #4CAF50;
+      font-size: 2.5em;
+      margin-bottom: 10px;
+    }
+    .header h2 {
+      color: #333366;
+      font-style: italic;
+      margin-bottom: 20px;
+    }
+    .instructions, .feedback, .final-screen .feedback {
+      background-color: #ADD8E6;
+      padding: 15px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+      color: #000;
+    }
+    .button-container {
+      text-align: center;
+      margin-top: 20px;
+    }
+    button {
+      background-color: #008CBA;
+      color: #FFFFFF;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      border-radius: 5px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background-color: #007B9E;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    .scenario-box h2 {
+      color: #333366;
+    }
+    .option-container {
+      border: 2px solid #008CBA;
+      background-color: #e6f7ff;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .detailed-breakdown table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+    }
+    .detailed-breakdown th, .detailed-breakdown td {
+      border: 1px solid #ccc;
+      padding: 8px;
+      text-align: left;
+    }
+    .detailed-breakdown th {
+      background-color: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer" class="container"></div>
+  <script>
+    var scenarios = [
+      {
+        title: "Scenario 1 – Handling Fresh Delivery",
+        text: "You receive a fresh delivery of ingredients. Your decision will determine your starting stock and financial commitment.",
+        options: [
+          {
+            option: "Accept full delivery",
+            stockImpact: 10,
+            costImpact: -5,
+            customerImpact: 5,
+            feedback: "By accepting the full order, you ensure a generous stock that can meet high demand. This choice increases customer satisfaction as fresh ingredients are always available; however, it incurs a higher cost that reduces overall cost efficiency."
+          },
+          {
+            option: "Accept partial delivery",
+            stockImpact: 5,
+            costImpact: 0,
+            customerImpact: 2,
+            feedback: "Choosing a partial delivery provides moderate stock levels while keeping costs in check. Customer satisfaction improves slightly, but you risk a shortage if demand unexpectedly surges."
+          },
+          {
+            option: "Reject delivery",
+            stockImpact: -5,
+            costImpact: 5,
+            customerImpact: -5,
+            feedback: "Rejecting the order saves on immediate costs, which improves cost efficiency. Yet, insufficient stock may lead to customer disappointment and missed sales opportunities."
+          }
+        ]
+      },
+      {
+        title: "Scenario 2 – Demand Surge Response",
+        text: "A sudden surge in customer orders challenges your inventory planning.",
+        options: [
+          {
+            option: "Increase order immediately",
+            stockImpact: 5,
+            costImpact: -10,
+            customerImpact: 10,
+            feedback: "Reacting swiftly by increasing your order boosts stock availability and greatly enhances customer satisfaction. However, the expedited purchase comes with a cost penalty that affects cost efficiency."
+          },
+          {
+            option: "Wait until next day",
+            stockImpact: -5,
+            costImpact: 0,
+            customerImpact: -5,
+            feedback: "Delaying your decision preserves cost efficiency, but reduced stock levels may not satisfy the sudden increase in customer demand, leading to lower customer satisfaction."
+          },
+          {
+            option: "Use reserved stock",
+            stockImpact: -5,
+            costImpact: 0,
+            customerImpact: 5,
+            feedback: "Using your reserved stock offers a quick fix for customer demand, slightly improving satisfaction without affecting costs. However, this depletes your reserve, potentially impacting future availability."
+          }
+        ]
+      },
+      {
+        title: "Scenario 3 – Managing Spoilage",
+        text: "Some ingredients are approaching their expiry date. Your strategy will impact waste reduction and customer trust.",
+        options: [
+          {
+            option: "Implement stricter quality controls",
+            stockImpact: 5,
+            costImpact: 10,
+            customerImpact: 5,
+            feedback: "Enhancing quality checks reduces spoilage and ensures that only fresh ingredients are served. This decision slightly increases costs due to added measures, but it significantly supports stock quality and boosts customer trust."
+          },
+          {
+            option: "Do nothing",
+            stockImpact: -5,
+            costImpact: -10,
+            customerImpact: -5,
+            feedback: "Ignoring the issue might save you immediate costs, but it results in spoilage that reduces stock quality and diminishes customer satisfaction, leading to a negative overall impact."
+          },
+          {
+            option: "Discount near-expiry items",
+            stockImpact: 5,
+            costImpact: -5,
+            customerImpact: 5,
+            feedback: "Offering discounted items helps move stock before it spoils, improving customer satisfaction and minimising waste. The reduced cost impact makes this a balanced, albeit risky, approach if too many items are sold at a discount."
+          }
+        ]
+      },
+      {
+        title: "Scenario 4 – Planning Weekly Orders",
+        text: "It is time to plan your weekly orders. Your decision affects future inventory levels and financial stability.",
+        options: [
+          {
+            option: "Order based on forecast demand",
+            stockImpact: 5,
+            costImpact: 10,
+            customerImpact: 5,
+            feedback: "Using historical data to inform your order ensures a balanced stock level while incurring a moderate cost. Customer satisfaction is maintained as the forecast aligns with typical demand."
+          },
+          {
+            option: "Order extra as a precaution",
+            stockImpact: 10,
+            costImpact: -5,
+            customerImpact: 2,
+            feedback: "Ordering extra stock provides a buffer against unexpected spikes in demand. This approach slightly harms cost efficiency due to over-ordering, and customer satisfaction sees only a modest increase."
+          },
+          {
+            option: "Order minimal stock",
+            stockImpact: -10,
+            costImpact: 5,
+            customerImpact: -5,
+            feedback: "Ordering minimal stock improves cost efficiency by saving money; however, it risks stock shortages and ultimately leads to dissatisfied customers when ingredients run out."
+          }
+        ]
+      },
+      {
+        title: "Scenario 5 – Handling Supplier Delay",
+        text: "A key supplier faces a delay, forcing you to make a rapid decision to maintain stock levels.",
+        options: [
+          {
+            option: "Source from an alternative supplier",
+            stockImpact: 5,
+            costImpact: -5,
+            customerImpact: 10,
+            feedback: "Switching suppliers maintains your stock levels and can even boost customer satisfaction due to prompt service, but the alternative option may incur slightly higher costs overall."
+          },
+          {
+            option: "Wait for the delayed supplier",
+            stockImpact: -5,
+            costImpact: 5,
+            customerImpact: -10,
+            feedback: "Waiting saves on switching costs and can improve cost efficiency; however, reduced stock levels lead to a significant drop in customer satisfaction as orders may not be met in time."
+          },
+          {
+            option: "Substitute with local ingredients",
+            stockImpact: 5,
+            costImpact: 0,
+            customerImpact: 5,
+            feedback: "Using locally sourced ingredients keeps your stock steady and maintains moderate customer satisfaction without impacting costs significantly. This option is a balanced compromise in uncertain conditions."
+          }
+        ]
+      },
+      {
+        title: "Scenario 6 – Special Promotion Strategy",
+        text: "A special promotional event is announced, increasing the demand for pizza.",
+        options: [
+          {
+            option: "Order in bulk to meet promotion",
+            stockImpact: 15,
+            costImpact: -10,
+            customerImpact: 5,
+            feedback: "Bulk ordering ensures you have ample ingredients to capitalise on the promotion, moderately affecting cost efficiency while keeping customers happy with ready availability."
+          },
+          {
+            option: "Slightly increase order",
+            stockImpact: 5,
+            costImpact: 5,
+            customerImpact: 2,
+            feedback: "A conservative increase helps manage risk, with modest improvements in all metrics. It is a safe approach if you are unsure about the promotion’s full impact."
+          },
+          {
+            option: "Over-order significantly",
+            stockImpact: 15,
+            costImpact: -15,
+            customerImpact: -5,
+            feedback: "Over-ordering might seem like a good way to prepare, but excessive stock can lead to waste and severe cost overruns. Customers may ultimately suffer if the quality declines due to unsold, overstocked ingredients."
+          }
+        ]
+      },
+      {
+        title: "Scenario 7 – Staff Feedback Integration",
+        text: "Your team suggests improvements in stock handling and ordering procedures. Integrating their feedback could yield long-term benefits.",
+        options: [
+          {
+            option: "Invest in staff training",
+            stockImpact: 5,
+            costImpact: 10,
+            customerImpact: 10,
+            feedback: "Comprehensive training increases overall efficiency in managing stock, resulting in higher customer satisfaction due to better service. The initial cost is high, but the long-term benefits balance out the expense."
+          },
+          {
+            option: "Ignore staff suggestions",
+            stockImpact: -5,
+            costImpact: -5,
+            customerImpact: -5,
+            feedback: "Disregarding valuable input saves costs in the short term but often leads to mismanagement of stock and a decline in customer satisfaction, ultimately harming your overall performance."
+          },
+          {
+            option: "Implement a partial training programme",
+            stockImpact: 5,
+            costImpact: 5,
+            customerImpact: 5,
+            feedback: "A measured investment in training improves staff performance moderately while keeping costs relatively low. This balanced approach yields steady gains in all metrics."
+          }
+        ]
+      },
+      {
+        title: "Scenario 8 – Year-End Inventory Audit",
+        text: "At the end of the year, a thorough inventory audit is conducted. Your final decision here will consolidate your yearly performance.",
+        options: [
+          {
+            option: "Conduct a thorough audit",
+            stockImpact: 10,
+            costImpact: 10,
+            customerImpact: 10,
+            feedback: "A complete audit provides valuable insights into inventory management, confirming high stock accuracy and financial prudence. This comprehensive review boosts customer satisfaction and reinforces positive managerial practices, culminating in a strong final score."
+          },
+          {
+            option: "Perform a minimal audit",
+            stockImpact: 5,
+            costImpact: 5,
+            customerImpact: 5,
+            feedback: "A minimal audit offers a quick check that moderately improves your metrics. While it is less time-consuming, it may not reveal all inefficiencies, resulting in smaller improvements."
+          },
+          {
+            option: "Skip the audit",
+            stockImpact: -10,
+            costImpact: -10,
+            customerImpact: -10,
+            feedback: "Skipping the audit saves time in the short term but leaves unresolved issues in stock management, cost control and customer service. This option leads to penalties across all metrics, greatly reducing your final performance."
+          }
+        ]
+      }
+    ];
+
+    var currentScenario = 0;
+    var metrics = {
+      stock: 50,
+      cost: 50,
+      customer: 50,
+      score: 0
+    };
+
+    var playerDecisions = [];
+
+    function updateMetricsDisplay() {
+      var metricStock = document.getElementById('metricStock');
+      if (metricStock) metricStock.textContent = metrics.stock;
+      var metricCost = document.getElementById('metricCost');
+      if (metricCost) metricCost.textContent = metrics.cost;
+      var metricCustomer = document.getElementById('metricCustomer');
+      if (metricCustomer) metricCustomer.textContent = metrics.customer;
+      var metricScore = document.getElementById('metricScore');
+      if (metricScore) metricScore.textContent = metrics.score;
+    }
+
+    function showHomeScreen() {
+      var container = document.getElementById('gameContainer');
+      container.innerHTML = `
+        <div class="header">
+          <h1>Pizza Inventory Challenge</h1>
+          <h2>LSST Learning Simulations</h2>
+        </div>
+        <div class="instructions">
+          <p>
+            Welcome to the Pizza Inventory Challenge! In this interactive, decision-based game, you will manage a local pizza restaurant’s inventory. You must balance Stock Availability, Cost Efficiency and Customer Satisfaction to achieve optimal results.
+            Read through the instructions carefully and click "Start Game" to begin your journey.
+          </p>
+        </div>
+        <div class="button-container">
+          <button id="startGame">Start Game</button>
+        </div>
+      `;
+      console.log("Home screen loaded.");
+      document.getElementById('startGame').addEventListener('click', function() {
+        showScenario();
+      });
+    }
+
+    function showScenario() {
+      if (currentScenario >= scenarios.length) {
+        showFinalScreen();
+        return;
+      }
+      var scenario = scenarios[currentScenario];
+      var container = document.getElementById('gameContainer');
+      var optionsHtml = "";
+      scenario.options.forEach(function(opt, index) {
+        optionsHtml += `<button class="option-button" data-index="${index}">${opt.option}</button>`;
+      });
+      container.innerHTML = `
+        <div class="metrics">
+          <table>
+            <tr>
+              <th>Stock Availability</th>
+              <th>Cost Efficiency</th>
+              <th>Customer Satisfaction</th>
+              <th>Total Score</th>
+            </tr>
+            <tr>
+              <td id="metricStock">${metrics.stock}</td>
+              <td id="metricCost">${metrics.cost}</td>
+              <td id="metricCustomer">${metrics.customer}</td>
+              <td id="metricScore">${metrics.score}</td>
+            </tr>
+          </table>
+        </div>
+        <div class="scenario-box">
+          <h2>${scenario.title}</h2>
+          <p>${scenario.text}</p>
+        </div>
+        <div class="option-container">
+          ${optionsHtml}
+        </div>
+        <div id="feedback" class="feedback"></div>
+        <div class="button-container" id="nextContainer" style="display: none;">
+          <button id="nextButton">Next</button>
+        </div>
+      `;
+      var optionButtons = document.querySelectorAll('.option-button');
+      optionButtons.forEach(function(button) {
+        button.addEventListener('click', function() {
+          var optionIndex = parseInt(this.getAttribute('data-index'));
+          processChoice(optionIndex);
+        });
+      });
+    }
+
+    function processChoice(optionIndex) {
+      var scenario = scenarios[currentScenario];
+      var choice = scenario.options[optionIndex];
+      metrics.stock += choice.stockImpact;
+      metrics.cost += choice.costImpact;
+      metrics.customer += choice.customerImpact;
+      var netImpact = choice.stockImpact + choice.costImpact + choice.customerImpact;
+      metrics.score += netImpact;
+      updateMetricsDisplay();
+      
+      playerDecisions.push({
+        scenario: scenario.title,
+        option: choice.option,
+        stockImpact: choice.stockImpact,
+        costImpact: choice.costImpact,
+        customerImpact: choice.customerImpact,
+        netImpact: netImpact,
+        feedback: choice.feedback
+      });
+      
+      var feedbackDiv = document.getElementById('feedback');
+      feedbackDiv.innerHTML = `<p>${choice.feedback}</p>`;
+      
+      var optionButtons = document.querySelectorAll('.option-button');
+      optionButtons.forEach(function(button) {
+        button.disabled = true;
+      });
+      document.getElementById('nextContainer').style.display = 'block';
+      document.getElementById('nextButton').addEventListener('click', function() {
+        currentScenario++;
+        showScenario();
+      });
+    }
+
+    function showFinalScreen() {
+      var container = document.getElementById('gameContainer');
+      var bonus = (metrics.stock >= 50 && metrics.stock <= 70 &&
+                   metrics.cost >= 50 && metrics.cost <= 70 &&
+                   metrics.customer >= 50 && metrics.customer <= 70) ? 10 : 0;
+      metrics.score += bonus;
+      updateMetricsDisplay();
+      
+      var finalAssessment = "";
+      if (metrics.score >= 70) {
+        finalAssessment = "Excellent Inventory Management: You balanced all aspects effectively.";
+      } else if (metrics.score >= 50) {
+        finalAssessment = "Good Inventory Management: Your decisions were mostly balanced, with some room for improvement.";
+      } else if (metrics.score >= 40) {
+        finalAssessment = "Needs Improvement: Some decisions led to imbalances in inventory management.";
+      } else {
+        finalAssessment = "Ineffective Inventory Management: Your strategy resulted in significant imbalances.";
+      }
+      
+      var breakdownHtml = `<div class="detailed-breakdown">
+        <h3>Detailed Decision Breakdown</h3>
+        <table>
+          <tr>
+            <th>Scenario</th>
+            <th>Chosen Option</th>
+            <th>Stock Impact</th>
+            <th>Cost Impact</th>
+            <th>Customer Impact</th>
+            <th>Net Impact</th>
+            <th>Feedback</th>
+          </tr>`;
+      playerDecisions.forEach(function(decision) {
+        breakdownHtml += `<tr>
+          <td>${decision.scenario}</td>
+          <td>${decision.option}</td>
+          <td>${decision.stockImpact}</td>
+          <td>${decision.costImpact}</td>
+          <td>${decision.customerImpact}</td>
+          <td>${decision.netImpact}</td>
+          <td>${decision.feedback}</td>
+        </tr>`;
+      });
+      breakdownHtml += `</table></div>`;
+      
+      container.innerHTML = `
+        <div class="final-screen">
+          <h2 style="color: #4CAF50;">Game Over – Final Assessment</h2>
+          <div class="metrics">
+            <table>
+              <tr>
+                <th>Stock Availability</th>
+                <th>Cost Efficiency</th>
+                <th>Customer Satisfaction</th>
+                <th>Total Score</th>
+              </tr>
+              <tr>
+                <td>${metrics.stock}</td>
+                <td>${metrics.cost}</td>
+                <td>${metrics.customer}</td>
+                <td>${metrics.score}</td>
+              </tr>
+            </table>
+          </div>
+          ${breakdownHtml}
+          <div class="feedback">
+            <p>${finalAssessment}</p>
+            <p>Please reload the webpage if you wish to play again.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      showHomeScreen();
+    });
+  </script>
+</body>
+</html>
